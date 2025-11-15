@@ -29,6 +29,14 @@ from .bolt_util import (
     end_node_id_key,
     to_bolt_driver)
 
+from .falkordb_util import (
+    falkordb_result_to_edges_dataframe,
+    falkordb_result_to_nodes_dataframe,
+    node_id_key as falkordb_node_id_key,
+    start_node_id_key as falkordb_start_node_id_key,
+    end_node_id_key as falkordb_end_node_id_key,
+    to_falkordb_db)
+
 
 from .arrow_uploader import ArrowUploader
 from .nodexlistry import NodeXLGraphistry
@@ -174,6 +182,7 @@ class PlotterBase(Plottable):
 
         # Integrations
         self._bolt_driver : Any = None
+        self._falkordb_db : Any = None
         self._tigergraph : Any = None
 
         # feature engineering
@@ -2539,6 +2548,174 @@ class PlotterBase(Plottable):
             node=node_id_key,
             source=start_node_id_key,
             destination=end_node_id_key
+        )\
+            .nodes(nodes)\
+            .edges(edges)
+
+
+    def falkordb(self, db):
+        """
+        Register a FalkorDB database connection for running Cypher queries.
+
+        This method binds a FalkorDB database instance to the current Plotter,
+        allowing you to execute Cypher queries using the `falkordb_cypher()` method.
+
+        :param db: FalkorDB database instance or connection dict.
+        :type db: falkordb.FalkorDB or dict
+
+        :returns: Plotter with FalkorDB connection configured.
+        :rtype: PlotterBase
+
+        **Example: Connecting to FalkorDB**
+
+        ::
+
+            import graphistry
+            from falkordb import FalkorDB
+
+            # Connect to FalkorDB
+            db = FalkorDB(host='localhost', port=6379)
+
+            # Register the connection with Graphistry
+            graphistry.register(api=3, username="X", password="Y")
+            g = graphistry.falkordb(db)
+
+            # Now you can run queries
+            result = g.falkordb_cypher('social', 'MATCH (n) RETURN n LIMIT 10')
+            result.plot()
+
+        **Example: Using Connection Dict**
+
+        ::
+
+            import graphistry
+
+            # Register with connection parameters
+            graphistry.register(api=3, username="X", password="Y")
+            g = graphistry.falkordb({
+                'host': 'localhost',
+                'port': 6379,
+                'password': 'mypassword'
+            })
+
+            # Run a query
+            result = g.falkordb_cypher('social', 'MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 100')
+            result.plot()
+        """
+        res = copy.copy(self)
+        res._falkordb_db = to_falkordb_db(db)
+        return res
+
+
+    def falkordb_cypher(self, graph_name: str, query: str, params: Dict[str, Any] = {}) -> Plottable:
+        """
+        Execute a Cypher query against a FalkorDB database and retrieve the results.
+
+        This method runs a Cypher query on a FalkorDB graph database. The query results
+        are transformed into DataFrames for nodes and edges, which are then bound to the
+        current graph visualization context. You can also pass parameters to the Cypher
+        query via the `params` argument.
+
+        :param graph_name: The name of the graph in FalkorDB to query.
+        :type graph_name: str
+
+        :param query: The Cypher query string to execute.
+        :type query: str
+
+        :param params: Optional dictionary of parameters to pass to the Cypher query.
+        :type params: dict, optional
+
+        :returns: Plotter with updated nodes and edges based on the query result.
+        :rtype: PlotterBase
+
+        :raises ValueError: If no FalkorDB connection is available.
+
+        **Example: Basic Query**
+
+        ::
+
+            import graphistry
+            from falkordb import FalkorDB
+
+            # Connect to FalkorDB
+            db = FalkorDB(host='localhost', port=6379)
+            graphistry.register(api=3, username="X", password="Y", falkordb=db)
+
+            # Run a basic Cypher query
+            g = graphistry.falkordb_cypher('social', '''
+                MATCH (person:Person)-[knows:KNOWS]-(friend:Person)
+                RETURN person, knows, friend
+                LIMIT 100
+            ''')
+
+            # Visualize the results
+            g.plot()
+
+        **Example: Parameterized Query**
+
+        ::
+
+            import graphistry
+            from falkordb import FalkorDB
+
+            # Connect to FalkorDB
+            db = FalkorDB(host='localhost', port=6379)
+            graphistry.register(api=3, username="X", password="Y", falkordb=db)
+
+            # Run a parameterized query
+            query = '''
+                MATCH (person:Person)-[knows:KNOWS]-(friend:Person)
+                WHERE person.name = $name
+                RETURN person, knows, friend
+            '''
+            params = {"name": "Alice"}
+
+            g = graphistry.falkordb_cypher('social', query, params)
+
+            # Inspect the results
+            print(g._nodes)  # DataFrame with node information
+            print(g._edges)  # DataFrame with edge information
+
+            # Visualize
+            g.plot()
+
+        **Example: Using with Method Chaining**
+
+        ::
+
+            import graphistry
+            from falkordb import FalkorDB
+
+            db = FalkorDB(host='localhost', port=6379)
+
+            g = (graphistry
+                .falkordb(db)
+                .falkordb_cypher('social', 'MATCH (n:Person) RETURN n LIMIT 50')
+                .bind(point_color='type')
+                .plot())
+
+        This demonstrates connecting to FalkorDB, running a Cypher query, and
+        visualizing the graph results.
+        """
+
+        res = copy.copy(self)
+        db = self._falkordb_db or self.session._falkordb_db
+        if db is None:
+            raise ValueError(
+                "FalkorDB connection information not provided. "
+                "Must first call graphistry.register(falkordb=...) or g.falkordb(...)."
+            )
+
+        graph = db.select_graph(graph_name)
+        result = graph.query(query, params=params)
+
+        edges = falkordb_result_to_edges_dataframe(result)
+        nodes = falkordb_result_to_nodes_dataframe(result)
+
+        return res.bind(
+            node=falkordb_node_id_key,
+            source=falkordb_start_node_id_key,
+            destination=falkordb_end_node_id_key
         )\
             .nodes(nodes)\
             .edges(edges)
