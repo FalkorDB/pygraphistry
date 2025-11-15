@@ -559,6 +559,10 @@ class GraphistryClient(AuthManagerProtocol):
     def set_bolt_driver(self, driver: Optional[Any] = None) -> None:
         self.session._bolt_driver = bolt_util.to_bolt_driver(driver)
 
+    def set_falkordb_db(self, db: Optional[Any] = None) -> None:
+        from . import falkordb_util
+        self.session._falkordb_db = falkordb_util.to_falkordb_db(db)
+
 
     def register(
         self,
@@ -573,6 +577,7 @@ class GraphistryClient(AuthManagerProtocol):
         api: Optional[Literal[1, 3]] = None,
         certificate_validation: Optional[bool] = None,
         bolt: Optional[Union[Dict, Any]] = None,
+        falkordb: Optional[Union[Dict, Any]] = None,
         store_token_creds_in_memory: Optional[bool] = None,
         client_protocol_hostname: Optional[str] = None,
         org_name: Optional[str] = None,
@@ -610,6 +615,8 @@ class GraphistryClient(AuthManagerProtocol):
         :type certificate_validation: Optional[bool]
         :param bolt: Neo4j bolt information. Optional driver or named constructor arguments for instantiating a new one.
         :type bolt: Union[dict, Any]
+        :param falkordb: FalkorDB database instance or connection dict. Optional FalkorDB instance or connection parameters.
+        :type falkordb: Union[dict, Any]
         :param protocol: Protocol used to contact visualization server, defaults to "https".
         :type protocol: Optional[str]
         :param token_refresh_ms: Ignored for now; JWT token auto-refreshed on plot() calls.
@@ -715,6 +722,7 @@ class GraphistryClient(AuthManagerProtocol):
         self.certificate_validation(certificate_validation)
         self.store_token_creds_in_memory(store_token_creds_in_memory)
         self.set_bolt_driver(bolt)
+        self.set_falkordb_db(falkordb)
         # Reset token creds
         self.__reset_token_creds_in_memory()
 
@@ -2621,6 +2629,8 @@ settings = PyGraphistry.settings
 hypergraph = PyGraphistry.hypergraph
 bolt = PyGraphistry.bolt
 cypher = PyGraphistry.cypher
+falkordb = PyGraphistry.falkordb
+falkordb_cypher = PyGraphistry.falkordb_cypher
 nodexl = PyGraphistry.nodexl
 tigergraph = PyGraphistry.tigergraph
 configure_spanner = PyGraphistry.configure_spanner

@@ -88,6 +88,7 @@ class ClientSession:
 
         # TODO: Migrate to a pattern like Kusto or Spanner
         self._bolt_driver: Optional[Any] = None
+        self._falkordb_db: Optional[Any] = None
 
     def copy(self) -> "ClientSession":
         """

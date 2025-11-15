@@ -33,6 +33,8 @@ from graphistry.pygraphistry import (  # noqa: E402, F401
     hypergraph,
     bolt,
     cypher,
+    falkordb,
+    falkordb_cypher,
     tigergraph,
     configure_spanner,
     spanner_from_client,
