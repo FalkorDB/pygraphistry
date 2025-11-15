@@ -157,21 +157,19 @@ def falkordb_val_to_pd_val(v):
     if v is None:
         return v
     
-    try:
-        v_type = type(v).__name__
-    except:
-        return v
-    
     # Handle datetime types (FalkorDB uses Python datetime types from dateutil)
     if isinstance(v, datetime):
         return v
     
     # Handle timedelta/duration
-    from dateutil.relativedelta import relativedelta
-    if isinstance(v, relativedelta):
-        # Convert relativedelta to ISO format string for storage
-        # FalkorDB duration format
-        return f"P{v.years}Y{v.months}M{v.days}D"
+    try:
+        from dateutil.relativedelta import relativedelta
+        if isinstance(v, relativedelta):
+            # Convert relativedelta to ISO format string for storage
+            # FalkorDB duration format
+            return f"P{v.years}Y{v.months}M{v.days}D"
+    except ImportError:
+        pass
     
     return v
 
