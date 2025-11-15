@@ -10,4 +10,4 @@ else
     source /opt/pygraphistry/pygraphistry/bin/activate
 fi
 
-./bin/test.sh $@
+./bin/test.sh "$@"

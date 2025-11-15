@@ -32,8 +32,8 @@ def to_falkordb_db(db=None):
             return db
         # If dict is provided, create FalkorDB instance
         return FalkorDB(**db)
-    except ImportError:
-        raise FalkorDBSupportModuleNotFound()
+    except ImportError as e:
+        raise FalkorDBSupportModuleNotFound() from e
 
 
 def falkordb_result_to_edges_dataframe(result):
