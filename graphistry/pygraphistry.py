@@ -1081,6 +1081,77 @@ class GraphistryClient(AuthManagerProtocol):
         return cast(Plotter, self._plotter().cypher(query, params))
 
 
+    def falkordb(self, db=None) -> Plotter:
+        """
+        Register a FalkorDB database connection.
+
+        :param db: FalkorDB database instance or connection dict
+        :return: Plotter with FalkorDB connection configured
+
+        Call this to create a Plotter with a FalkorDB database connection.
+
+        **Example**
+
+                ::
+
+                    import graphistry
+                    from falkordb import FalkorDB
+                    
+                    db = FalkorDB(host='localhost', port=6379, password='mypassword')
+                    g = graphistry.falkordb(db)
+
+                ::
+
+                    import graphistry
+                    g = graphistry.falkordb({
+                        'host': 'localhost',
+                        'port': 6379,
+                        'password': 'mypassword'
+                    })
+        """
+        return self._plotter().falkordb(db)
+
+
+    def falkordb_cypher(self, graph_name: str, query: str, params: Dict[str, Any] = {}) -> Plotter:
+        """
+        Execute a Cypher query against a FalkorDB database.
+
+        :param graph_name: Name of the graph in FalkorDB
+        :param query: Cypher query string
+        :param params: Query parameters
+        :return: Plotter with data from the query. Binds `source`, `destination`, and `node`.
+
+        Call this to immediately execute a cypher query against FalkorDB and store the graph
+        in the resulting Plotter.
+
+        **Example**
+
+                ::
+
+                    import graphistry
+                    from falkordb import FalkorDB
+                    
+                    db = FalkorDB(host='localhost', port=6379)
+                    graphistry.register(api=3, username='user', password='pass', falkordb=db)
+                    
+                    g = graphistry.falkordb_cypher(
+                        'social',
+                        'MATCH (a)-[r:KNOWS]->(b) RETURN a, r, b LIMIT 100'
+                    )
+                    g.plot()
+
+                ::
+
+                    import graphistry
+                    g = graphistry.falkordb_cypher(
+                        'social',
+                        'MATCH (p:Person)-[r]->(f) WHERE p.name = $name RETURN p, r, f',
+                        params={'name': 'Alice'}
+                    )
+        """
+        return cast(Plotter, self._plotter().falkordb_cypher(graph_name, query, params))
+
+
     def nodexl(self, xls_or_url: Union[str, Any], source: str = "default", engine: Optional[str] = None, verbose: bool = False) -> Plotter:
         """
 
